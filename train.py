@@ -55,6 +55,9 @@ def validate(model, dataloader, criterion, device):
     correct = 0
     total = 0
 
+    num_classes = config.NUM_LABELS
+    conf_matrix = torch.zeros(num_classes, num_classes, dtype=torch.long)
+
     with torch.no_grad():
         for batch in tqdm(dataloader, desc='Validating', unit='batch'):
             inputs = batch['pixel_values'].to(device)
@@ -68,7 +71,32 @@ def validate(model, dataloader, criterion, device):
             total += labels.size(0)
             correct += predicted.eq(labels).sum().item()
 
-    return total_loss / len(dataloader), 100. * correct / total
+            for t, p in zip(labels.cpu(), predicted.cpu()):
+                conf_matrix[t.long(), p.long()] += 1
+
+    val_acc = 100. * correct / total
+
+    # Per-class recall: TP[i] / (TP[i] + FN[i])
+    recalls = []
+    for i in range(num_classes):
+        row_sum = conf_matrix[i].sum().item()
+        recalls.append(conf_matrix[i, i].item() / row_sum if row_sum > 0 else 0.0)
+
+    maligno_recall = recalls[config.LABEL2ID['Maligno']]  # class index for "Maligno"
+
+    class_names = [config.ID2LABEL[i] for i in range(num_classes)]
+    print("\nMatriz de Confusión:")
+    header = "          " + "  ".join(f"{n:>8}" for n in class_names)
+    print(header)
+    for i, name in enumerate(class_names):
+        row = "  ".join(f"{conf_matrix[i, j].item():>8}" for j in range(num_classes))
+        print(f"{name:>10}  {row}")
+
+    print("\nRecall por clase:")
+    for i, name in enumerate(class_names):
+        print(f"  {name}: {recalls[i]*100:.2f}%")
+
+    return total_loss / len(dataloader), val_acc, maligno_recall
 
 def main(args):
     torch.cuda.manual_seed(33)
@@ -78,18 +106,16 @@ def main(args):
 
     device = torch.device(config.DEVICE)
 
-    train_loader, val_loader = dataset.create_dataloaders()
+    train_loader, val_loader = dataset.create_dataloaders(batch_size=args.batch_size)
 
     model = model_utils.get_vit_model()
 
     for param in model.vit.encoder.layer[-4:].parameters():
         param.requires_grad = True
 
-    weights = torch.tensor([1.0, 2.0, 1.0]).to(device)
+    weights = torch.tensor([1.0, 3.0, 1.0]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights, label_smoothing=0.1)
 
-    criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
-    
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -101,26 +127,27 @@ def main(args):
     )
 
     os.makedirs(args.save_dir, exist_ok=True)
-    best_val_acc = 0.0
+    best_maligno_recall = 0.0
 
     print(f"Iniciando entrenamiento")
     
     for epoch in range(1, args.epochs + 1):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion, optimizer, scheduler, device, epoch)
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
-        scheduler.step(val_acc)
+        val_loss, val_acc, maligno_recall = validate(model, val_loader, criterion, device)
+        scheduler.step(maligno_recall)
         
-        print(f'Epoch {epoch}: Train Loss: {train_loss:.4f} Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} Acc: {val_acc:.2f}%')
+        print(f'Epoch {epoch}: Train Loss: {train_loss:.4f} Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} Acc: {val_acc:.2f}% | Recall Maligno: {maligno_recall*100:.2f}%')
 
-        if val_acc > best_val_acc:
-            best_val_acc = val_acc
+        if maligno_recall > best_maligno_recall:
+            best_maligno_recall = maligno_recall
             torch.save({
                     'epoch': epoch,
                     'model_state_dict': model.state_dict(),
                     'optimizer_state_dict': optimizer.state_dict(),
-                    'val_acc': best_val_acc
+                    'val_acc': val_acc,
+                    'maligno_recall': best_maligno_recall
                 }, os.path.join(args.save_dir, 'best_model.pth'))
-            print(f'Guardado con Val Acc: {best_val_acc:.2f}%')
+            print(f'Guardado con Recall Maligno: {best_maligno_recall*100:.2f}% (Val Acc: {val_acc:.2f}%)')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

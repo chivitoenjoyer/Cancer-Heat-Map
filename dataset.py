@@ -3,41 +3,32 @@ from datasets import load_dataset
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
 import config
-from tqdm import tqdm
+
 
 class BreastCancerDataset(Dataset):
     def __init__(self, hf_dataset, transform):
+        self.hf_dataset = hf_dataset
         self.transform = transform
-        self.images = []
-        self.labels = []
-        
-        
-        all_cols = hf_dataset.column_names
-        label_col = 'label' if 'label' in all_cols else [c for c in all_cols if c != 'image'][0]
-        
-        unique_labels = sorted(list(set(hf_dataset[label_col])))
-        label_map = {original: i for i, original in enumerate(unique_labels)}
-        
-        print(f"Map de etiquetas: {label_map}")
-        if len(unique_labels) > config.NUM_LABELS:
-            print(f"El dataset tiene {len(unique_labels)} clases, pero config tiene {config.NUM_LABELS}")
 
-        for item in tqdm(hf_dataset):
-            img = item['image'].convert("RGB")
-            self.images.append(self.transform(img))
-            
-            mapped_label = label_map[item[label_col]]
-            self.labels.append(torch.tensor(mapped_label, dtype=torch.long))
+        all_cols = hf_dataset.column_names
+        self.label_col = 'label' if 'label' in all_cols else [c for c in all_cols if c != 'image'][0]
+        self.label2id = config.LABEL2ID  # fixed mapping from config, not derived from the dataset
+
     def __len__(self):
-        return len(self.labels)
+        return len(self.hf_dataset)
 
     def __getitem__(self, idx):
+        item = self.hf_dataset[idx]
+        img = item['image'].convert("RGB")
+        pixel_values = self.transform(img)
+        label = torch.tensor(self.label2id[item[self.label_col]], dtype=torch.long)
         return {
-            'pixel_values': self.images[idx],
-            'label': self.labels[idx]
+            'pixel_values': pixel_values,
+            'label': label
         }
 
-def get_transforms():
+
+def get_train_transforms():
     return transforms.Compose([
         transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
         transforms.RandomHorizontalFlip(p=0.5),
@@ -49,10 +40,23 @@ def get_transforms():
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
 
-def create_dataloaders():
+
+def get_val_transforms():
+    return transforms.Compose([
+        transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
+        transforms.Grayscale(num_output_channels=3),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+    ])
+
+
+def create_dataloaders(batch_size=None, num_workers=0):
+    if batch_size is None:
+        batch_size = config.BATCH_SIZE
+
     print(f"Cargando dataset desde el Hub: {config.DATASET_NAME}...")
     raw_dataset = load_dataset(config.DATASET_NAME)
-    
+
     if 'test' in raw_dataset:
         train_raw = raw_dataset['train']
         val_raw = raw_dataset['test']
@@ -61,13 +65,11 @@ def create_dataloaders():
         train_raw = split['train']
         val_raw = split['test']
 
-    transform = get_transforms()
+    train_dataset = BreastCancerDataset(train_raw, get_train_transforms())
+    val_dataset = BreastCancerDataset(val_raw, get_val_transforms())
 
-    train_dataset = BreastCancerDataset(train_raw, transform)
-    val_dataset = BreastCancerDataset(val_raw, transform)
-
-    train_loader = DataLoader(train_dataset, batch_size=config.BATCH_SIZE, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=config.BATCH_SIZE, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
     print(f"Dataset listo.")
     return train_loader, val_loader
