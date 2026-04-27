@@ -35,7 +35,14 @@ def evaluate_model():
 
     target_names = [config.ID2LABEL[i] for i in range(config.NUM_LABELS)]
 
-    print(classification_report(all_labels, all_preds, target_names=target_names))
+    report = classification_report(all_labels, all_preds, target_names=target_names)
+    print(report)
+
+    os.makedirs(config.RESULTS_DIR, exist_ok=True)
+    report_path = os.path.join(config.RESULTS_DIR, "classification_report.txt")
+    with open(report_path, "w") as f:
+        f.write(report)
+    print(f"Reporte guardado en '{report_path}'")
 
     cm = confusion_matrix(all_labels, all_preds)
     plt.figure(figsize=(8, 6))
@@ -51,18 +58,21 @@ def evaluate_model():
     plt.ylabel("Realidad")
     plt.title("Matriz de Confusion - Modelo ViT Mama")
 
-    os.makedirs(config.RESULTS_DIR, exist_ok=True)
     output_path = os.path.join(config.RESULTS_DIR, "confusion_matrix.png")
     plt.savefig(output_path)
-    print(f"\nMatriz de confusion guardada como '{output_path}'")
-    plt.show()
+    plt.close()
+    print(f"Matriz de confusion guardada en '{output_path}'")
 
-    fn = sum((all_labels[i] == 1 and all_preds[i] == 0) for i in range(len(all_labels)))
-    fp = sum((all_labels[i] == 0 and all_preds[i] == 1) for i in range(len(all_labels)))
+    # cm[real][pred] — análisis de seguridad para las 3 clases
+    mal = config.LABEL2ID["Maligno"]
+    ben = config.LABEL2ID["Benigno"]
+    nor = config.LABEL2ID["Normal"]
 
     print("\n--- Analisis de Seguridad ---")
-    print(f"Falsos Negativos (Malignos fallados): {fn}")
-    print(f"Falsos Positivos (Benignos como malignos): {fp}")
+    print(f"Maligno clasificado como Benigno : {cm[mal][ben]}")
+    print(f"Maligno clasificado como Normal  : {cm[mal][nor]}")
+    print(f"Benigno clasificado como Maligno : {cm[ben][mal]}")
+    print(f"Normal  clasificado como Maligno : {cm[nor][mal]}")
 
 
 if __name__ == "__main__":

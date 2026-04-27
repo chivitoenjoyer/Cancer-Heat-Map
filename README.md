@@ -62,7 +62,10 @@ Argumentos disponibles:
 - `--batch_size` (default: valor de `config.BATCH_SIZE`)
 - `--lr` (default: valor de `config.LEARNING_RATE`)
 - `--weight_decay` (default: valor de `config.WEIGHT_DECAY`)
-- `--early_stopping_patience` (default: `10`): numero de epocas consecutivas sin mejora en `val_acc` tras las cuales se detiene el entrenamiento automaticamente. El mejor checkpoint ya estara guardado en ese momento.
+- `--early_stopping_patience` (default: `10`): numero de epocas consecutivas sin mejora en `val_acc` tras las cuales se detiene el entrenamiento. El mejor checkpoint ya estara guardado en ese momento.
+- `--resume` (default: `None`): ruta a un checkpoint para reanudar el entrenamiento desde la epoca guardada.
+
+Cada entrenamiento genera `checkpoints/training_log.csv` con columnas `epoch, train_loss, train_acc, val_loss, val_acc, lr` para analizar las curvas de aprendizaje.
 
 ## Evaluacion
 `evaluate.py` carga el checkpoint:
@@ -80,6 +83,17 @@ Ejecuta:
 ```bash
 python evaluate.py
 ```
+
+## Heatmaps de atencion
+
+`heatmap.py` visualiza que zonas de la imagen activaron el diagnostico del modelo usando las attention maps del ViT.
+
+```bash
+python heatmap.py --image ruta/imagen.jpg
+python heatmap.py --image ruta/imagen.jpg --checkpoint ./checkpoints/best_model.pth
+```
+
+Genera `results/heatmap_<nombre>.png` con la imagen original y el mapa de atencion superpuesto, e imprime la prediccion con confianza por clase.
 
 ## Notas sobre el modelo
 - Se usa `ViTForImageClassification.from_pretrained(..., ignore_mismatched_sizes=True, output_attentions=True)`.

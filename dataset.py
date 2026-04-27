@@ -48,8 +48,8 @@ def get_train_transforms():
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomRotation(degrees=15),
         transforms.RandomResizedCrop(config.IMAGE_SIZE, scale=(0.85, 1.0)),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.Grayscale(num_output_channels=3),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])

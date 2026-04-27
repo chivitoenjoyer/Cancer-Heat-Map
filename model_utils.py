@@ -34,6 +34,10 @@ def get_best_model_path(save_dir=config.CHECKPOINT_DIR):
 
 def load_trained_model(path=None):
     checkpoint_path = path or get_best_model_path()
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(
+            f"Checkpoint no encontrado en '{checkpoint_path}'. Ejecuta train.py primero."
+        )
     model = get_vit_model()
     checkpoint = torch.load(checkpoint_path, map_location=config.DEVICE)
     model.load_state_dict(checkpoint["model_state_dict"])
