@@ -95,6 +95,8 @@ python heatmap.py --image ruta/imagen.jpg --checkpoint ./checkpoints/best_model.
 
 Genera `results/heatmap_<nombre>.png` con la imagen original y el mapa de atencion superpuesto, e imprime la prediccion con confianza por clase.
 
+![Heatmap de ejemplo](results/heatmap_muestra.png)
+
 ## Notas sobre el modelo
 - Se usa `ViTForImageClassification.from_pretrained(..., ignore_mismatched_sizes=True, output_attentions=True)`.
 - Se congelan todos los parametros y luego se habilita entrenamiento para:
