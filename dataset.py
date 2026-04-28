@@ -46,7 +46,7 @@ def get_train_transforms():
     return transforms.Compose([
         transforms.Resize((config.IMAGE_SIZE, config.IMAGE_SIZE)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomRotation(degrees=15),
+        transforms.RandomRotation(degrees=10),
         transforms.RandomResizedCrop(config.IMAGE_SIZE, scale=(0.85, 1.0)),
         transforms.Grayscale(num_output_channels=3),
         transforms.ColorJitter(brightness=0.2, contrast=0.2),
@@ -80,8 +80,8 @@ def create_dataloaders(batch_size=None):
     train_dataset = BreastCancerDataset(train_raw, get_train_transforms())
     val_dataset = BreastCancerDataset(val_raw, get_val_transforms())
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
     print("Dataset listo.")
     return train_loader, val_loader
