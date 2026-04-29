@@ -45,7 +45,7 @@ Ajusta parametros en `config.py`:
 - `RESULTS_DIR`: carpeta de resultados, por defecto `./results`.
 
 ## Entrenamiento
-El entrenamiento guarda el mejor modelo por accuracy de validacion en:
+El entrenamiento guarda el mejor modelo por **F1 macro de validacion** (desempate por menor `val_loss`) en:
 
 ```bash
 ./checkpoints/best_model.pth
@@ -63,10 +63,10 @@ Argumentos disponibles:
 - `--batch_size` (default: valor de `config.BATCH_SIZE`)
 - `--lr` (default: valor de `config.LEARNING_RATE`)
 - `--weight_decay` (default: valor de `config.WEIGHT_DECAY`)
-- `--early_stopping_patience` (default: `10`): numero de epocas consecutivas sin mejora en `val_acc` tras las cuales se detiene el entrenamiento. El mejor checkpoint ya estara guardado en ese momento.
+- `--early_stopping_patience` (default: `10`): numero de epocas consecutivas sin mejora en `val_f1` tras las cuales se detiene el entrenamiento. El mejor checkpoint ya estara guardado en ese momento.
 - `--resume` (default: `None`): ruta a un checkpoint para reanudar el entrenamiento desde la epoca guardada.
 
-Cada entrenamiento genera `checkpoints/training_log.csv` con columnas `epoch, train_loss, train_acc, val_loss, val_acc, lr` para analizar las curvas de aprendizaje.
+Cada entrenamiento genera `checkpoints/training_log.csv` con columnas `epoch, train_loss, train_f1, val_loss, val_f1, lr` para analizar las curvas de aprendizaje.
 
 ## Evaluacion
 `evaluate.py` carga el checkpoint:
