@@ -84,7 +84,7 @@ def main(args):
     train_loader, val_loader = dataset.create_dataloaders(batch_size=args.batch_size)
     model = model_utils.get_vit_model()
 
-    weights = torch.tensor([1.0, 2.0, 1.0]).to(device)
+    weights = torch.tensor([1.0, 3.0, 1.0]).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights, label_smoothing=0.1)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(

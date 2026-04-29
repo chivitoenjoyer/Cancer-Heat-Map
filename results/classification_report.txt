@@ -1,6 +1,6 @@
               precision    recall  f1-score   support
 
-     Benigno       0.98      0.95      0.96       244
+     Benigno       0.98      0.95      0.97       244
      Maligno       0.92      0.97      0.94       229
       Normal       0.98      0.96      0.97       249
 
