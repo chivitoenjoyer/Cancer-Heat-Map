@@ -1,3 +1,7 @@
 __pycache__/
 .venv/
 checkpoints*/
+webapp/static/uploads/*
+webapp/static/outputs/*
+!webapp/static/uploads/.gitkeep
+!webapp/static/outputs/.gitkeep

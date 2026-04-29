@@ -22,6 +22,7 @@ El pipeline carga el dataset desde Hugging Face Hub, entrena un modelo ViT para 
 - `train.py`: entrenamiento con early stopping, logging a CSV y guardado del mejor checkpoint.
 - `evaluate.py`: evaluacion del checkpoint, reporte de clasificacion y matriz de confusion.
 - `heatmap.py`: genera un grid comparativo (original + heatmap) con imagenes aleatorias del dataset.
+- `webapp/`: interfaz web (subida de imagen, prediccion y heatmap).
 - `results/`: salidas generadas (`confusion_matrix.png`, `classification_report.txt`, `heatmaps/grid.png`).
 
 ## Requisitos
@@ -88,6 +89,23 @@ python evaluate.py
 ## Heatmaps de atencion
 
 `heatmap.py` visualiza que zonas de la imagen activaron el diagnostico del modelo usando las attention maps del ViT.
+
+## Interfaz web (subir imagen)
+
+1) Asegura que existe el checkpoint:
+
+```bash
+python train.py
+# genera: ./checkpoints/best_model.pth
+```
+
+2) Lanza la web:
+
+```bash
+python webapp/app.py
+```
+
+Luego abre: http://127.0.0.1:5000
 
 ```bash
 python heatmap.py

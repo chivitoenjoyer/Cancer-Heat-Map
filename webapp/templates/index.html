@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cancer Heat Map — Demo</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true"></div>
+          <div class="hgroup">
+            <h1>Cancer Heat Map</h1>
+            <p>Sube una ecografía para obtener la predicción y el mapa de calor (attention map de ViT).</p>
+          </div>
+        </div>
+        <div class="pill" title="Modelo">
+          <span>ViT</span>
+          <span style="opacity:.75">·</span>
+          <span>384×384</span>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="alert error"><b>Error:</b> {{ error }}</div>
+      {% endif %}
+
+      <div class="grid">
+        <div class="card">
+          <h2>1) Cargar imagen</h2>
+          <p class="note">Arrastra y suelta una imagen o selecciónala desde tu equipo. Luego pulsa <b>Predecir</b>.</p>
+
+          <form data-form="predict" action="/predict" method="post" enctype="multipart/form-data">
+            <input data-input="image" id="image" type="file" name="image" accept="image/*" required />
+
+            <div class="dropzone" data-dropzone role="button" tabindex="0" aria-label="Área para soltar imagen">
+              <div class="preview">
+                <img data-preview="img" alt="previsualización" />
+                <div>
+                  <div class="fname" data-preview="name">Ningún archivo seleccionado</div>
+                  <div class="hint" data-preview="hint">Puedes arrastrar y soltar una imagen aquí o elegir un archivo.</div>
+                </div>
+              </div>
+              <div class="actions">
+                <button class="subbtn" data-action="pick" type="button">Elegir archivo</button>
+                <button class="btn" data-action="submit" type="submit">
+                  <span class="spinner" data-submit-spinner style="display:none"></span>
+                  <span data-submit-label>Predecir</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="meta">Límite: 10MB. Formatos típicos: JPG/PNG.</div>
+          </form>
+
+          <div class="footer">
+            Nota: el modelo se carga desde <code>./checkpoints/best_model.pth</code>. Si no existe, ejecuta <code>python train.py</code> primero.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>2) Resultado</h2>
+
+          {% if result %}
+            {% set pred = (result.pred_label | lower) %}
+            {% set badge_cls = 'info' %}
+            {% if 'malig' in pred %}{% set badge_cls = 'bad' %}{% endif %}
+            {% if 'benig' in pred %}{% set badge_cls = 'good' %}{% endif %}
+
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <span class="badge {{ badge_cls }}">Predicción: {{ result.pred_label }}</span>
+              <span class="pill">Confianza: {{ (result.confidence * 100) | round(2) }}%</span>
+            </div>
+
+            <div class="kv">
+              <div class="k">Accuracy (validación) del checkpoint</div>
+              <div>
+                {% if result.model_val_acc is not none %}{{ result.model_val_acc | round(2) }}%{% else %}N/D{% endif %}
+                {% if result.model_epoch is not none %}<span style="color:rgba(238,242,255,.65)">(época {{ result.model_epoch }})</span>{% endif %}
+              </div>
+              <div class="k">Checkpoint</div>
+              <div style="text-align:right; color:rgba(238,242,255,.82)"><code>{{ result.checkpoint_path }}</code></div>
+            </div>
+
+            <hr class="hr" />
+
+            <h2>Probabilidades por clase</h2>
+            <div class="prob-list">
+              {% for k,v in (result.probs.items() | sort(attribute='1', reverse=True)) %}
+                <div>
+                  <div class="prob-row">
+                    <div style="font-weight:700">{{ k }}</div>
+                    <div style="color:rgba(238,242,255,.8)">{{ (v * 100) | round(2) }}%</div>
+                  </div>
+                  <div class="bar" aria-hidden="true"><div style="width: {{ (v * 100) | round(2) }}%"></div></div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="note">Aún no hay predicción. Sube una imagen para ver resultados.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if result %}
+        <div style="height:14px"></div>
+        <div class="card">
+          <h2>3) Visualizaciones</h2>
+          <p class="note">Izquierda: imagen re-escalada a 384×384. Derecha: mapa de calor superpuesto.</p>
+
+          <div class="gallery">
+            <div class="figure">
+              <img src="{{ original_url }}" alt="original" />
+              <div class="cap">Original</div>
+            </div>
+            <div class="figure">
+              <img src="{{ heatmap_url }}" alt="heatmap" />
+              <div class="cap">Heatmap</div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <script src="{{ url_for('static', filename='app.js') }}"></script>
+    </div>
+  </body>
+</html>
