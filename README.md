@@ -21,6 +21,7 @@ El pipeline carga el dataset desde Hugging Face Hub, entrena un modelo ViT para 
 - `model_utils.py`: construccion y carga del modelo ViT.
 - `train.py`: entrenamiento con early stopping, logging a CSV y guardado del mejor checkpoint.
 - `evaluate.py`: evaluacion del checkpoint, reporte de clasificacion y matriz de confusion.
+- `val_accuracy.py`: calcula la tasa de aciertos (accuracy) del mejor checkpoint sobre validacion.
 - `heatmap.py`: genera un grid comparativo (original + heatmap) con imagenes aleatorias del dataset.
 - `webapp/`: interfaz web (subida de imagen, prediccion y heatmap).
 - `results/`: salidas generadas (`confusion_matrix.png`, `classification_report.txt`, `heatmaps/grid.png`).
@@ -85,6 +86,24 @@ Ejecuta:
 ```bash
 python evaluate.py
 ```
+
+Para calcular solo la tasa de aciertos del mejor modelo sobre un dataset externo (no visto en entrenamiento):
+
+```bash
+python val_accuracy.py
+```
+
+Por defecto usa `gymprathap/Breast-Cancer-Ultrasound-Images-Dataset`.
+Opcionalmente, puedes indicar dataset, checkpoint y batch size:
+
+```bash
+python val_accuracy.py --dataset_name gymprathap/Breast-Cancer-Ultrasound-Images-Dataset --checkpoint ./checkpoints/best_model.pth --batch_size 8
+```
+
+Resultado obtenido:
+- Aciertos: 149/156
+- Tasa de aciertos (accuracy): 95.51%
+
 
 ## Heatmaps de atencion
 
